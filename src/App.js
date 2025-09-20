@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 // --- Helper Components ---
 
 // ARView Component: No changes needed here, it's already functional.
+// ARView Component: Handles the camera and 3D model display
 const ARView = ({ item, onClose }) => {
   useEffect(() => {
     console.log("ARView mounted for:", item.name);
@@ -14,7 +15,8 @@ const ARView = ({ item, onClose }) => {
       <a-scene
         embedded
         arjs="sourceType: webcam; debugUIEnabled: false;"
-        renderer="logarithmicDepthBuffer: true; precision: medium;"
+        // --- FIX IS HERE ---
+        renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; physicallyCorrectLights: true;"
         vr-mode-ui="enabled: false"
         style={{ width: '100%', height: '100%' }}
       >
@@ -30,7 +32,7 @@ const ARView = ({ item, onClose }) => {
         <a-entity camera></a-entity>
       </a-scene>
 
-      {/* UI Overlay */}
+      {/* UI Overlay (No changes here) */}
       <div style={{
         position: 'absolute',
         top: '0',

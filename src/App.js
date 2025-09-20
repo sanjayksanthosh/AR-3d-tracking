@@ -26,7 +26,7 @@ const ARView = ({ item, onClose }) => {
             scale={item.scale}
             position={item.position}
             rotation={item.rotation}
-            animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear;"
+            // animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear;"
           ></a-entity>
         </a-marker>
         <a-entity camera></a-entity>
@@ -157,8 +157,8 @@ function App() {
       image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1998&auto=format&fit=crop",
       category: "Main Dishes",
       isSpicy: true,
-      model: "/my-ar-app/public/models/grilled_sandwich.glb", // Assumes burger.glb is in public/models
-      scale: "0.5 0.5 0.5",
+      model: "/models/grilled_sandwich.glb", // Assumes burger.glb is in public/models
+      scale: "2 2 2",
       position: "0 0 0",
       rotation: "0 0 0",
     },
@@ -171,8 +171,8 @@ function App() {
       category: "Main Dishes",
       isVegan: true,
       isGlutenFree: true,
-      model: "/my-ar-app/public/models/pizza.glb", // Assumes fries.glb is in public/models
-      scale: "0.3 0.3 0.3",
+      model: "/models/ribs_from_joia.glb", // Assumes fries.glb is in public/models
+      scale: "2 2 2",
       position: "0 0 0",
       rotation: "0 0 0",
     },
@@ -183,8 +183,8 @@ function App() {
       price: "$10.99 USD",
       image: "https://images.unsplash.com/photo-1528207776546-365bb710ee93?q=80&w=2070&auto=format&fit=crop",
       category: "Breakfast",
-      model: "/my-ar-app/public/models/cheese_pastry.glb", // Assumes pancakes.glb is in public/models
-      scale: "0.4 0.4 0.4",
+      model: "/models/cheese_pastry.glb", // Assumes pancakes.glb is in public/models
+      scale: ".1 .1 .1",
       position: "0 0 0",
       rotation: "0 0 0",
     },
@@ -196,8 +196,8 @@ function App() {
       image: "https://images.unsplash.com/photo-1554866585-cd94860890b7?q=80&w=1964&auto=format&fit=crop",
       category: "Drinks",
       isVegan: true,
-      model: "/models/soda_can.glb", // Assumes soda_can.glb is in public/models
-      scale: "0.2 0.2 0.2",
+      model: "/models/pizza_ballerina.glb", // Assumes soda_can.glb is in public/models
+      scale: "2 2 2",
       position: "0 0.2 0",
       rotation: "-90 0 0",
     },

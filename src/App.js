@@ -14,7 +14,7 @@ const ARView = ({ item, onClose }) => {
       {/* A-Frame Scene for AR */}
       <a-scene
         embedded
-        arjs="sourceType: webcam; debugUIEnabled: false;"
+        arjs="sourceType: webcam; debugUIEnabled: false; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720;"
         // --- FIX IS HERE ---
         renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; physicallyCorrectLights: true;"
         vr-mode-ui="enabled: false"
@@ -171,7 +171,7 @@ function App() {
       category: "Main Dishes",
       isVegan: true,
       isGlutenFree: true,
-      model: "/my-ar-app/public/models/ribs_from_joia.glb", // Assumes fries.glb is in public/models
+      model: "/my-ar-app/public/models/pizza.glb", // Assumes fries.glb is in public/models
       scale: "0.3 0.3 0.3",
       position: "0 0 0",
       rotation: "0 0 0",

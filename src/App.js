@@ -95,6 +95,7 @@ const ARView = ({ item, onClose }) => {
 
 // MenuItem Component: Displays a single item card in the menu (UI/UX updated)
 // MenuItem Component: Horizontal Content Inside
+// MenuItem Component: Responsive Design
 const MenuItem = ({ item, onViewInAR }) => (
   <div style={{
     backgroundColor: 'white',
@@ -102,8 +103,7 @@ const MenuItem = ({ item, onViewInAR }) => (
     overflow: 'hidden',
     boxShadow: '0 4px 15px rgba(0, 0, 0, 0.08)',
     display: 'flex',
-    flexDirection: 'column', // Card stays vertical in grid
-    height: '100%',
+    flexDirection: 'column',
     transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
   }}
    onMouseOver={e => {
@@ -115,24 +115,40 @@ const MenuItem = ({ item, onViewInAR }) => (
      e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.08)';
    }}
   >
-    {/* Inner content row layout */}
-    <div style={{ display: 'flex', flexDirection: 'row', height: '200px' }}>
-      {/* Image on left */}
+    {/* Inner content row layout, switches to column on small screens */}
+    <div style={{
+      display: 'flex',
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    }}>
+      {/* Image */}
       <img 
         src={item.image} 
         alt={item.name} 
-        style={{ width: '50%', height: '100%', objectFit: 'cover' }}
+        style={{
+          width: '100%',
+          maxWidth: '220px',
+          flex: '1 1 220px',
+          objectFit: 'cover',
+          aspectRatio: '1 / 1',
+        }}
         onError={(e) => { e.target.onerror = null; e.target.src='https://placehold.co/400x400/EEE/333?text=Image+Missing'; }}
       />
 
-      {/* Text + button on right */}
-      <div style={{ padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      {/* Text + Button */}
+      <div style={{
+        flex: '2 1 300px',
+        padding: '1rem',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+      }}>
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1a1a1a', fontWeight: '600' }}>{item.name}</h3>
-            <p style={{ margin: 0, fontSize: '1.125rem', fontWeight: 'bold', color: '#1a1a1a', whiteSpace: 'nowrap', paddingLeft: '1rem' }}>{item.price}</p>
+            <p style={{ margin: 0, fontSize: '1.125rem', fontWeight: 'bold', color: '#1a1a1a' }}>{item.price}</p>
           </div>
-          <p style={{ color: '#555', marginTop: '0.5rem', lineHeight: '1.5' }}>{item.description}</p>
+          <p style={{ color: '#555', marginTop: '0.5rem', lineHeight: '1.5', fontSize: '0.95rem' }}>{item.description}</p>
         </div>
 
         <button 
@@ -151,7 +167,8 @@ const MenuItem = ({ item, onViewInAR }) => (
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.5rem'
+              gap: '0.5rem',
+              width: '100%'
           }}
           onMouseOver={e => e.currentTarget.style.backgroundColor = '#4338CA'}
           onMouseOut={e => e.currentTarget.style.backgroundColor = '#4F46E5'}

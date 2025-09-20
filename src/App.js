@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 // --- Helper Components ---
 
-// ARView Component: Handles the camera and 3D model display (No changes here)
+// ARView Component: Handles the camera and 3D model display
 const ARView = ({ item, onClose }) => {
   useEffect(() => {
     console.log("ARView mounted for:", item.name);
@@ -14,6 +14,7 @@ const ARView = ({ item, onClose }) => {
       <a-scene
         embedded
         arjs="sourceType: webcam; debugUIEnabled: false;"
+        renderer="logarithmicDepthBuffer: true; precision: medium;"
         vr-mode-ui="enabled: false"
         style={{ width: '100%', height: '100%' }}
       >
@@ -93,9 +94,7 @@ const ARView = ({ item, onClose }) => {
 };
 
 
-// MenuItem Component: Displays a single item card in the menu (UI/UX updated)
-// MenuItem Component: Horizontal Content Inside
-// MenuItem Component: Responsive Design
+// MenuItem Component: Displays a single item card in the menu (Reverted to responsive vertical layout)
 const MenuItem = ({ item, onViewInAR }) => (
   <div style={{
     backgroundColor: 'white',
@@ -104,6 +103,7 @@ const MenuItem = ({ item, onViewInAR }) => (
     boxShadow: '0 4px 15px rgba(0, 0, 0, 0.08)',
     display: 'flex',
     flexDirection: 'column',
+    height: '100%',
     transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
   }}
    onMouseOver={e => {
@@ -115,71 +115,47 @@ const MenuItem = ({ item, onViewInAR }) => (
      e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.08)';
    }}
   >
-    {/* Inner content row layout, switches to column on small screens */}
-    <div style={{
-      display: 'flex',
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-    }}>
-      {/* Image */}
-      <img 
-        src={item.image} 
-        alt={item.name} 
-        style={{
-          width: '100%',
-          maxWidth: '220px',
-          flex: '1 1 220px',
-          objectFit: 'cover',
-          aspectRatio: '1 / 1',
-        }}
-        onError={(e) => { e.target.onerror = null; e.target.src='https://placehold.co/400x400/EEE/333?text=Image+Missing'; }}
-      />
-
-      {/* Text + Button */}
-      <div style={{
-        flex: '2 1 300px',
-        padding: '1rem',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-      }}>
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1a1a1a', fontWeight: '600' }}>{item.name}</h3>
-            <p style={{ margin: 0, fontSize: '1.125rem', fontWeight: 'bold', color: '#1a1a1a' }}>{item.price}</p>
-          </div>
-          <p style={{ color: '#555', marginTop: '0.5rem', lineHeight: '1.5', fontSize: '0.95rem' }}>{item.description}</p>
-        </div>
-
-        <button 
-          onClick={() => onViewInAR(item)}
-          style={{
-              marginTop: '1rem',
-              padding: '0.75rem',
-              fontSize: '1rem',
-              fontWeight: '600',
-              color: 'white',
-              backgroundColor: '#4F46E5',
-              border: 'none',
-              borderRadius: '0.5rem',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              width: '100%'
-          }}
-          onMouseOver={e => e.currentTarget.style.backgroundColor = '#4338CA'}
-          onMouseOut={e => e.currentTarget.style.backgroundColor = '#4F46E5'}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-          View in AR
-        </button>
+    <img 
+      src={item.image} 
+      alt={item.name} 
+      style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+      onError={(e) => { e.target.onerror = null; e.target.src='https://placehold.co/600x400/EEE/333?text=Image+Missing'; }}
+    />
+    <div style={{ padding: '1.25rem', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1a1a1a', fontWeight: '600' }}>{item.name}</h3>
+        <p style={{ margin: 0, fontSize: '1.125rem', fontWeight: 'bold', color: '#1a1a1a', whiteSpace: 'nowrap', paddingLeft: '1rem' }}>{item.price}</p>
       </div>
+      <p style={{ color: '#555', marginTop: '0.5rem', flexGrow: 1, lineHeight: '1.5' }}>{item.description}</p>
+      <button 
+        onClick={() => onViewInAR(item)}
+        style={{
+            marginTop: '1.25rem',
+            width: '100%',
+            padding: '0.75rem',
+            fontSize: '1rem',
+            fontWeight: '600',
+            color: 'white',
+            backgroundColor: '#4F46E5',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem'
+        }}
+        onMouseOver={e => e.currentTarget.style.backgroundColor = '#4338CA'}
+        onMouseOut={e => e.currentTarget.style.backgroundColor = '#4F46E5'}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        View in AR
+      </button>
     </div>
   </div>
 );
+
 
 // --- Main App Component ---
 
@@ -197,7 +173,7 @@ function App() {
           description: "A classic blend of rich espresso, steamed milk, and a smooth layer of foam.",
           price: "$4.50",
           image: "https://images.unsplash.com/photo-1557799884-361a3c7f199b?q=80&w=1887&auto=format&fit=crop",
-          model: "/my-ar-app/public/models/ribs_from_joia.glb",
+          model: "https://cdn.glitch.global/e524623c-f45e-47f6-82f5-20c1532c2560/coffee_cup.glb?v=1726757138989",
           scale: "0.4 0.4 0.4",
           position: "0 0.5 0",
           rotation: "-90 0 0",
@@ -208,7 +184,7 @@ function App() {
           description: "A concentrated, full-bodied coffee shot with a layer of rich 'crema' on top.",
           price: "$3.00",
           image: "https://images.unsplash.com/photo-1599399432888-b39b83726f54?q=80&w=1887&auto=format&fit=crop",
-          model: "/my-ar-app/public/models/grilled_sandwich.glb",
+          model: "https://cdn.glitch.global/e524623c-f45e-47f6-82f5-20c1532c2560/coffee_cup.glb?v=1726757138989",
           scale: "0.3 0.3 0.3",
           position: "0 0.4 0",
           rotation: "-90 0 0",
@@ -224,7 +200,7 @@ function App() {
           description: "Flaky, buttery, and freshly baked throughout the day. A perfect Parisian treat.",
           price: "$3.75",
           image: "https://images.unsplash.com/photo-1621268858154-1b3d5b796d1c?q=80&w=1964&auto=format&fit=crop",
-          model: "/my-ar-app/public/models/cheese_pastry.glb",
+          model: "https://cdn.glitch.global/e524623c-f45e-47f6-82f5-20c1532c2560/croissant.glb?v=1726757140884",
           scale: "0.2 0.2 0.2",
           position: "0 0.2 0",
           rotation: "0 0 0",
@@ -235,7 +211,7 @@ function App() {
           description: "A decadent slice of rich chocolate cake with a creamy fudge frosting.",
           price: "$6.00",
           image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?q=80&w=1987&auto=format&fit=crop",
-          model: "/my-ar-app/public/models/pizza_ballerina.glb",
+          model: "https://cdn.glitch.global/e524623c-f45e-47f6-82f5-20c1532c2560/cake.glb?v=1726757137025",
           scale: "0.3 0.3 0.3",
           position: "0 0.1 0",
           rotation: "0 0 0",

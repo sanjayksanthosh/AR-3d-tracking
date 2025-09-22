@@ -10,12 +10,11 @@ const ARView = ({ item, onClose }) => {
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 100 }}>
-      {/* A-Frame Scene for AR */}
+      {/* A-Frame Scene for AR - Corrected */}
       <a-scene
-        embedded
         arjs="sourceType: webcam; debugUIEnabled: false;"
         renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; physicallyCorrectLights: true;"
-        vrModeUi="enabled: false" // Corrected attribute for JSX
+        vr-mode-ui="enabled: false"
         style={{ width: '100%', height: '100%' }}
       >
         {/* Lights */}
@@ -26,7 +25,7 @@ const ARView = ({ item, onClose }) => {
         {/* Marker and Model */}
         <a-marker preset="hiro">
           <a-entity
-            gltfModel={`url(${item.model})`} // Corrected attribute for JSX
+            gltf-model={`url(${item.model})`}
             scale={item.scale}
             position={item.position}
             rotation={item.rotation}

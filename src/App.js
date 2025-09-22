@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+// --- Helper Components ---
+
 // ARView Component: Handles the camera and 3D model display
 const ARView = ({ item, onClose }) => {
   useEffect(() => {
@@ -11,10 +13,9 @@ const ARView = ({ item, onClose }) => {
       {/* A-Frame Scene for AR */}
       <a-scene
         embedded
-        {/* CHANGE HERE: Removed hardcoded dimensions to make it responsive */}
         arjs="sourceType: webcam; debugUIEnabled: false;"
         renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; physicallyCorrectLights: true;"
-        vr-mode-ui="enabled: false"
+        vrModeUi="enabled: false" // Corrected attribute for JSX
         style={{ width: '100%', height: '100%' }}
       >
         {/* Lights */}
@@ -25,7 +26,7 @@ const ARView = ({ item, onClose }) => {
         {/* Marker and Model */}
         <a-marker preset="hiro">
           <a-entity
-            gltf-model={`url(${item.model})`}
+            gltfModel={`url(${item.model})`} // Corrected attribute for JSX
             scale={item.scale}
             position={item.position}
             rotation={item.rotation}
@@ -34,7 +35,7 @@ const ARView = ({ item, onClose }) => {
         <a-entity camera></a-entity>
       </a-scene>
 
-      {/* UI Overlay (No changes needed here) */}
+      {/* UI Overlay */}
       <div style={{
         position: 'absolute',
         top: '0',
@@ -66,6 +67,7 @@ const ARView = ({ item, onClose }) => {
     </div>
   );
 };
+
 // --- Tag Component ---
 const Tag = ({ label }) => (
   <div style={{
@@ -75,7 +77,7 @@ const Tag = ({ label }) => (
     fontSize: '0.875rem',
     marginRight: '1rem'
   }}>
-    <span style={{ marginRight: '0.25rem' }}>✓</span> 
+    <span style={{ marginRight: '0.25rem' }}>✓</span>
     {label}
   </div>
 );
@@ -91,9 +93,9 @@ const MenuItem = ({ item, onViewInAR }) => (
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
     border: '1px solid #E5E7EB'
   }}>
-    <img 
-      src={item.image} 
-      alt={item.name} 
+    <img
+      src={item.image}
+      alt={item.name}
       style={{
         width: '120px',
         height: '120px',
@@ -101,7 +103,7 @@ const MenuItem = ({ item, onViewInAR }) => (
         borderRadius: '0.375rem',
         flexShrink: 0
       }}
-      onError={(e) => { e.target.onerror = null; e.target.src='https://placehold.co/120x120/EEE/333?text=Error'; }}
+      onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/120x120/EEE/333?text=Error'; }}
     />
     <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -114,7 +116,7 @@ const MenuItem = ({ item, onViewInAR }) => (
         {item.isSpicy && <Tag label="Spicy" />}
         {item.isGlutenFree && <Tag label="Gluten-Free" />}
       </div>
-      <button 
+      <button
         onClick={() => onViewInAR(item)}
         style={{
           padding: '0.5rem 1rem',

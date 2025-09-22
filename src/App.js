@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-// --- Helper Components ---
-
 // ARView Component: Handles the camera and 3D model display
 const ARView = ({ item, onClose }) => {
   useEffect(() => {
@@ -13,19 +11,18 @@ const ARView = ({ item, onClose }) => {
       {/* A-Frame Scene for AR */}
       <a-scene
         embedded
-        arjs="sourceType: webcam; debugUIEnabled: false; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720;"
+        {/* CHANGE HERE: Removed hardcoded dimensions to make it responsive */}
+        arjs="sourceType: webcam; debugUIEnabled: false;"
         renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; physicallyCorrectLights: true;"
         vr-mode-ui="enabled: false"
         style={{ width: '100%', height: '100%' }}
       >
-        {/* Lights added */}
+        {/* Lights */}
         <a-entity light="type: ambient; intensity: 0.7"></a-entity>
         <a-entity light="type: directional; intensity: 1; castShadow: true" position="1 2 2"></a-entity>
         <a-entity light="type: directional; intensity: 0.8" position="-2 2 1"></a-entity>
 
-        {/* Optional: environment (needs aframe-environment-component) */}
-        {/* <a-entity environment="preset: forest; lighting: point"></a-entity> */}
-
+        {/* Marker and Model */}
         <a-marker preset="hiro">
           <a-entity
             gltf-model={`url(${item.model})`}
@@ -37,7 +34,7 @@ const ARView = ({ item, onClose }) => {
         <a-entity camera></a-entity>
       </a-scene>
 
-      {/* UI Overlay */}
+      {/* UI Overlay (No changes needed here) */}
       <div style={{
         position: 'absolute',
         top: '0',
@@ -51,7 +48,7 @@ const ARView = ({ item, onClose }) => {
         background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button 
+          <button
             onClick={onClose}
             style={{ padding: '0.5rem 1rem', fontSize: '1rem', backgroundColor: 'rgba(255, 255, 255, 0.9)', color: '#333', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.2)', fontWeight: 'bold' }}
           >
@@ -69,7 +66,6 @@ const ARView = ({ item, onClose }) => {
     </div>
   );
 };
-
 // --- Tag Component ---
 const Tag = ({ label }) => (
   <div style={{

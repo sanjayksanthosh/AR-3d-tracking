@@ -2,49 +2,30 @@ import React, { useState, useEffect } from 'react';
 
 // --- Helper Components ---
 
-// ARView Component: Handles the camera and 3D model display
+// ARView Component: Handles the camera and 3D model display (MODIFIED)
 const ARView = ({ item, onClose }) => {
-  const [videoDevices, setVideoDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState(null);
 
   useEffect(() => {
-    const getVideoDevices = async () => {
+    const getVideoDevice = async () => {
       try {
-        // Request permissions first to get camera labels
+        // Request permissions first to ensure camera access
         await navigator.mediaDevices.getUserMedia({ video: true });
         const devices = await navigator.mediaDevices.enumerateDevices();
         const cameras = devices.filter(device => device.kind === 'videoinput');
-        setVideoDevices(cameras);
 
         if (cameras.length > 0) {
-          // Prefer a back/environment camera
-          const backCam = cameras.find(cam =>
-            /back|environment/i.test(cam.label)
-          );
-          if (backCam) {
-            setSelectedDeviceId(backCam.deviceId);
-          } else if (cameras.length > 1) {
-            // Fallback: pick the second camera
-            setSelectedDeviceId(cameras[1].deviceId);
-          } else {
-            // Last resort: use the first camera
-            setSelectedDeviceId(cameras[0].deviceId);
-          }
+          // Directly use the first available camera
+          setSelectedDeviceId(cameras[0].deviceId);
+        } else {
+          console.error("No video input devices found.");
         }
       } catch (error) {
-        console.error("Error accessing or enumerating video devices:", error);
+        console.error("Error accessing video devices:", error);
       }
     };
-    getVideoDevices();
-  }, []);
-
-  const handleCameraSwitch = () => {
-    if (videoDevices.length > 1) {
-      const currentIndex = videoDevices.findIndex(device => device.deviceId === selectedDeviceId);
-      const nextIndex = (currentIndex + 1) % videoDevices.length;
-      setSelectedDeviceId(videoDevices[nextIndex].deviceId);
-    }
-  };
+    getVideoDevice();
+  }, []); // Runs only once on component mount
 
   const buttonStyle = {
     padding: '0.5rem 1rem',
@@ -74,8 +55,9 @@ const ARView = ({ item, onClose }) => {
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 100 }}>
       <a-scene
+        // The key is still useful to force a re-render if the deviceId is ever set again
         key={selectedDeviceId}
-        arjs={`sourceType: webcam; deviceId: ${selectedDeviceId}; facingMode: environment; debugUIEnabled: false;`}
+        arjs={`sourceType: webcam; deviceId: ${selectedDeviceId}; debugUIEnabled: false;`}
         renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; physicallyCorrectLights: true;"
         vr-mode-ui="enabled: false"
         style={{ width: '100%', height: '100%' }}
@@ -112,11 +94,7 @@ const ARView = ({ item, onClose }) => {
             <button onClick={onClose} style={buttonStyle}>
               &larr; Back
             </button>
-            {videoDevices.length > 1 && (
-              <button onClick={handleCameraSwitch} style={buttonStyle}>
-                🔄 Switch
-              </button>
-            )}
+            {/* The Switch Camera Button has been removed */}
           </div>
           <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Viewing: {item.name}</h2>
         </div>
@@ -236,7 +214,7 @@ function App() {
       name: "Pancakes with Berries",
       description: "Fluffy buttermilk pancakes topped with fresh berries.",
       price: "$10.99 USD",
-      image: "https://images.unsplash.com/photo-1528207776546-365bb71əe93?q=80&w=2070&auto=format&fit=crop",
+      image: "https://images.unsplash.com/photo-1528207776546-365bb710e93?q=80&w=2070&auto=format&fit=crop",
       category: "Breakfast",
       model: "https://cdn.glitch.global/e9a72511-b1e7-44a3-81f3-524621fb2b87/pancakes.glb?v=1689785909282",
       scale: "0.003 0.003 0.003",

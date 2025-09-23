@@ -2,50 +2,79 @@ import React, { useState, useEffect } from 'react';
 
 // --- Helper Components ---
 
-// ARView Component: Handles the camera and 3D model display (FIXED to use back camera)
+// ARView Component: Handles the camera and 3D model display (MODIFIED)
 const ARView = ({ item, onClose }) => {
   const [selectedDeviceId, setSelectedDeviceId] = useState(null);
 
   useEffect(() => {
     const getVideoDevice = async () => {
       try {
-        // Ask permission first
-        await navigator.mediaDevices.getUserMedia({ video: true });
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const cameras = devices.filter(device => device.kind === 'videoinput');
+        // First try environment camera directly
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: "environment" } }
+        });
+        const track = stream.getVideoTracks()[0];
+        setSelectedDeviceId(track.getSettings().deviceId || null);
+        console.log("Using back camera:", track.label);
+        stream.getTracks().forEach(t => t.stop());
+      } catch (err) {
+        console.warn("Back camera not found, trying next device:", err);
 
-        if (cameras.length > 0) {
-          // Prefer "back" or "environment" cameras
-          const backCam = cameras.find(cam =>
-            /back|environment/i.test(cam.label)
-          );
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const cameras = devices.filter(d => d.kind === "videoinput");
 
-          if (backCam) {
-            setSelectedDeviceId(backCam.deviceId);
-            console.log("Using back camera:", backCam.label);
-          } else if (cameras.length > 1) {
-            // fallback: second camera (often back)
-            setSelectedDeviceId(cameras[1].deviceId);
-            console.log("Using second camera:", cameras[1].label);
+          if (cameras.length > 0) {
+            let currentIndex = 0;
+
+            const tryCamera = async () => {
+              if (currentIndex >= cameras.length) {
+                console.error("No working camera found.");
+                return;
+              }
+
+              try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                  video: { deviceId: cameras[currentIndex].deviceId }
+                });
+                const track = stream.getVideoTracks()[0];
+                setSelectedDeviceId(track.getSettings().deviceId || null);
+                console.log("Using camera:", track.label);
+                stream.getTracks().forEach(t => t.stop());
+              } catch (err) {
+                console.warn(
+                  `Camera ${cameras[currentIndex].label} failed, trying next...`,
+                  err
+                );
+                currentIndex++;
+                tryCamera();
+              }
+            };
+
+            tryCamera();
           } else {
-            // fallback: first camera
-            setSelectedDeviceId(cameras[0].deviceId);
-            console.log("Using first camera:", cameras[0].label);
+            console.error("No video input devices found.");
           }
-
-          // Debug: list all cameras
-          cameras.forEach((cam, idx) => {
-            console.log(`Camera ${idx}:`, cam.label || "Unnamed");
-          });
-        } else {
-          console.error("No video input devices found.");
+        } catch (error) {
+          console.error("Error enumerating devices:", error);
         }
-      } catch (error) {
-        console.error("Error accessing video devices:", error);
       }
     };
+
     getVideoDevice();
-  }, []);
+  }, []); // Runs only once
+
+  const buttonStyle = {
+    padding: '0.5rem 1rem',
+    fontSize: '1rem',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    color: '#333',
+    border: 'none',
+    borderRadius: '0.5rem',
+    cursor: 'pointer',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+    fontWeight: 'bold'
+  };
 
   if (!selectedDeviceId) {
     return (
@@ -98,50 +127,15 @@ const ARView = ({ item, onClose }) => {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: '0.5rem 1rem',
-                fontSize: '1rem',
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                color: '#333',
-                border: 'none',
-                borderRadius: '0.5rem',
-                cursor: 'pointer',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-                fontWeight: 'bold'
-              }}
-            >
+            <button onClick={onClose} style={buttonStyle}>
               &larr; Back
             </button>
           </div>
           <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Viewing: {item.name}</h2>
         </div>
-        <div style={{
-          marginTop: '1.5rem',
-          padding: '1rem',
-          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-          borderRadius: '0.5rem',
-          textAlign: 'center'
-        }}>
-          <p style={{ margin: '0 0 0.5rem 0' }}>
-            Point your camera at the Hiro marker to see the 3D model.
-          </p>
-          <a
-            href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/HIRO.jpg"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-block',
-              padding: '0.5rem 1rem',
-              fontSize: '0.875rem',
-              backgroundColor: '#3B82F6',
-              borderRadius: '0.375rem',
-              textDecoration: 'none',
-              color: 'white',
-              fontWeight: '500'
-            }}
-          >
+        <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: 'rgba(0, 0, 0, 0.6)', borderRadius: '0.5rem', textAlign: 'center' }}>
+          <p style={{ margin: '0 0 0.5rem 0' }}>Point your camera at the Hiro marker to see the 3D model.</p>
+          <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/HIRO.jpg" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', padding: '0.5rem 1rem', fontSize: '0.875rem', backgroundColor: '#3B82F6', borderRadius: '0.375rem', textDecoration: 'none', color: 'white', fontWeight: '500' }}>
             Show Hiro Marker
           </a>
         </div>
@@ -150,7 +144,6 @@ const ARView = ({ item, onClose }) => {
   );
 };
 
-// --- Tag Component ---
 const Tag = ({ label }) => (
   <div style={{
     display: 'flex',
@@ -164,7 +157,6 @@ const Tag = ({ label }) => (
   </div>
 );
 
-// --- MenuItem Component ---
 const MenuItem = ({ item, onViewInAR }) => (
   <div style={{
     backgroundColor: 'white',
@@ -221,7 +213,6 @@ const MenuItem = ({ item, onViewInAR }) => (
   </div>
 );
 
-// --- Main App ---
 function App() {
   const [arItem, setArItem] = useState(null);
 

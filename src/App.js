@@ -4,16 +4,42 @@ import React, { useState, useEffect } from 'react';
 
 // ARView Component: Handles the camera and 3D model display
 const ARView = ({ item, onClose }) => {
-  // State to manage camera facing mode: 'environment' (back) or 'user' (front)
-  const [facingMode, setFacingMode] = useState('environment');
+  // --- NEW: State for camera devices ---
+  const [videoDevices, setVideoDevices] = useState([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState(null);
 
+  // --- NEW: useEffect to get cameras and set default ---
   useEffect(() => {
-    console.log("ARView mounted for:", item.name);
-  }, [item]);
+    const getVideoDevices = async () => {
+      try {
+        // Request permissions first to get camera labels
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cameras = devices.filter(device => device.kind === 'videoinput');
+        setVideoDevices(cameras);
 
-  // Toggles the camera between front and back
+        // --- Logic to default to the second camera ---
+        if (cameras.length > 1) {
+          // If there are multiple cameras, pick the second one.
+          setSelectedDeviceId(cameras[1].deviceId);
+        } else if (cameras.length > 0) {
+          // Otherwise, fall back to the first one.
+          setSelectedDeviceId(cameras[0].deviceId);
+        }
+      } catch (error) {
+        console.error("Error accessing or enumerating video devices:", error);
+      }
+    };
+    getVideoDevices();
+  }, []); // Empty dependency array ensures this runs only once
+
+  // --- NEW: Updated switch logic to cycle through all cameras ---
   const handleCameraSwitch = () => {
-    setFacingMode(prevMode => (prevMode === 'environment' ? 'user' : 'environment'));
+    if (videoDevices.length > 1) {
+      const currentIndex = videoDevices.findIndex(device => device.deviceId === selectedDeviceId);
+      const nextIndex = (currentIndex + 1) % videoDevices.length; // Wrap around the list
+      setSelectedDeviceId(videoDevices[nextIndex].deviceId);
+    }
   };
 
   // Shared button style for UI consistency
@@ -29,16 +55,29 @@ const ARView = ({ item, onClose }) => {
     fontWeight: 'bold'
   };
 
+  // Display a loading message until a camera is selected
+  if (!selectedDeviceId) {
+    return (
+      <div style={{
+        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+        display: 'flex', justifyContent: 'center', alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.8)', color: 'white', zIndex: 100,
+        textAlign: 'center', padding: '1rem'
+      }}>
+        <p>Initializing Camera...<br />Please grant permission.</p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 100 }}>
-      {/* A-Frame Scene for AR - Updated with two key changes:
-        1. `key={facingMode}`: This forces React to re-mount the component when the camera switches,
-           which is necessary for AR.js to re-initialize the camera source.
-        2. `arjs={`...`}`: The facingMode is now dynamic based on the component's state.
+      {/* --- CRITICAL UPDATE to <a-scene> ---
+        1. `key` is now based on the specific camera ID.
+        2. `arjs` now uses `deviceId` instead of the generic `facingMode`.
       */}
       <a-scene
-        key={facingMode}
-        arjs={`sourceType: webcam; facingMode: ${facingMode}; debugUIEnabled: false;`}
+        key={selectedDeviceId}
+        arjs={`sourceType: webcam; deviceId: ${selectedDeviceId}; debugUIEnabled: false;`}
         renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; physicallyCorrectLights: true;"
         vr-mode-ui="enabled: false"
         style={{ width: '100%', height: '100%' }}
@@ -78,10 +117,12 @@ const ARView = ({ item, onClose }) => {
             <button onClick={onClose} style={buttonStyle}>
               &larr; Back
             </button>
-            {/* The new button to switch cameras */}
-            <button onClick={handleCameraSwitch} style={buttonStyle}>
-              🔄 Switch
-            </button>
+            {/* The button to switch cameras, now with the new logic */}
+            {videoDevices.length > 1 && (
+              <button onClick={handleCameraSwitch} style={buttonStyle}>
+                🔄 Switch
+              </button>
+            )}
           </div>
           <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Viewing: {item.name}</h2>
         </div>
@@ -97,7 +138,7 @@ const ARView = ({ item, onClose }) => {
 };
 
 
-// --- Tag Component ---
+// --- Tag Component (Unchanged) ---
 const Tag = ({ label }) => (
   <div style={{
     display: 'flex',
@@ -111,7 +152,7 @@ const Tag = ({ label }) => (
   </div>
 );
 
-// --- MenuItem Component ---
+// --- MenuItem Component (Unchanged) ---
 const MenuItem = ({ item, onViewInAR }) => (
   <div style={{
     backgroundColor: 'white',
@@ -168,7 +209,7 @@ const MenuItem = ({ item, onViewInAR }) => (
   </div>
 );
 
-// --- Main App Component ---
+// --- Main App Component (Unchanged) ---
 function App() {
   const [arItem, setArItem] = useState(null);
 
@@ -181,9 +222,9 @@ function App() {
       image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1998&auto=format&fit=crop",
       category: "Main Dishes",
       isSpicy: true,
-      model: "/models/ribs_from_joia.glb",
-      scale: "8 8 8",
-      position: "0 0 0",
+      model: "/models/pizza.glb",
+      scale: "1 1 1",
+      position: "0 0.1 0",
       rotation: "0 0 0",
     },
     {
@@ -192,11 +233,11 @@ function App() {
       description: "Crispy, golden-brown fries salted to perfection.",
       price: "$4.99 USD",
       image: "https://images.unsplash.com/photo-1576107232684-c7be35d0859a?q=80&w=1887&auto=format&fit=crop",
-      category: "Main Dishes",
+      category: "Sides",
       isVegan: true,
       isGlutenFree: true,
-      model: "/models/ribs_from_joia.glb",
-      scale: "2 2 2",
+      model: "https://cdn.glitch.global/e9a72511-b1e7-44a3-81f3-524621fb2b87/fries.glb?v=1689785903893",
+      scale: "0.4 0.4 0.4",
       position: "0 0 0",
       rotation: "0 0 0",
     },
@@ -205,10 +246,10 @@ function App() {
       name: "Pancakes with Berries",
       description: "Fluffy buttermilk pancakes topped with fresh berries.",
       price: "$10.99 USD",
-      image: "https://images.unsplash.com/photo-1528207776546-365bb710ee93?q=80&w=2070&auto=format&fit=crop",
+      image: "https://images.unsplash.com/photo-1528207776546-365bb71əe93?q=80&w=2070&auto=format&fit=crop",
       category: "Breakfast",
-      model: "/models/cheese_pastry.glb",
-      scale: "0.1 0.1 0.1",
+      model: "https://cdn.glitch.global/e9a72511-b1e7-44a3-81f3-524621fb2b87/pancakes.glb?v=1689785909282",
+      scale: "0.003 0.003 0.003",
       position: "0 0 0",
       rotation: "0 0 0",
     },
@@ -220,10 +261,10 @@ function App() {
       image: "https://images.unsplash.com/photo-1554866585-cd94860890b7?q=80&w=1964&auto=format&fit=crop",
       category: "Drinks",
       isVegan: true,
-      model: "/models/pizza_ballerina.glb",
-      scale: "2 2 2",
-      position: "0 0.2 0",
-      rotation: "-90 0 0",
+      model: "https://cdn.glitch.global/e9a72511-b1e7-44a3-81f3-524621fb2b87/soda_can.glb?v=1689785913233",
+      scale: "0.2 0.2 0.2",
+      position: "0 0.1 0",
+      rotation: "0 0 0",
     },
     {
       id: 5,
@@ -232,7 +273,7 @@ function App() {
       price: "$6.00 USD",
       image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?q=80&w=1987&auto=format&fit=crop",
       category: "Desserts",
-      model: "/models/cake_slice.glb",
+      model: "https://cdn.glitch.global/e9a72511-b1e7-44a3-81f3-524621fb2b87/cake_slice.glb?v=1689785895782",
       scale: "0.3 0.3 0.3",
       position: "0 0.1 0",
       rotation: "0 0 0",

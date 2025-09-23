@@ -1,106 +1,142 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
 // --- Helper Components ---
 
-// ARView Component: Handles the camera and 3D model display (MODIFIED)
+// ARView Component
 const ARView = ({ item, onClose }) => {
   const [selectedDeviceId, setSelectedDeviceId] = useState(null);
+  const [error, setError] = useState(null);
+  const [cameras, setCameras] = useState([]);
 
+  // Try starting a camera by deviceId
+  const tryCamera = async (deviceId) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: deviceId } },
+      });
+      setSelectedDeviceId(deviceId);
+      stream.getTracks().forEach((t) => t.stop()); // stop after checking
+      return true;
+    } catch (err) {
+      console.warn("Camera failed:", err);
+      return false;
+    }
+  };
+
+  // Init camera on mount
   useEffect(() => {
-    const getVideoDevice = async () => {
+    const initCamera = async () => {
       try {
-        // First try environment camera directly
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { exact: "environment" } }
-        });
-        const track = stream.getVideoTracks()[0];
-        setSelectedDeviceId(track.getSettings().deviceId || null);
-        console.log("Using back camera:", track.label);
-        stream.getTracks().forEach(t => t.stop());
-      } catch (err) {
-        console.warn("Back camera not found, trying next device:", err);
+        // Ensure permission
+        await navigator.mediaDevices.getUserMedia({ video: true });
 
-        try {
-          const devices = await navigator.mediaDevices.enumerateDevices();
-          const cameras = devices.filter(d => d.kind === "videoinput");
+        // Get available cameras
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter((d) => d.kind === "videoinput");
+        setCameras(videoInputs);
 
-          if (cameras.length > 0) {
-            let currentIndex = 0;
-
-            const tryCamera = async () => {
-              if (currentIndex >= cameras.length) {
-                console.error("No working camera found.");
-                return;
-              }
-
-              try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                  video: { deviceId: cameras[currentIndex].deviceId }
-                });
-                const track = stream.getVideoTracks()[0];
-                setSelectedDeviceId(track.getSettings().deviceId || null);
-                console.log("Using camera:", track.label);
-                stream.getTracks().forEach(t => t.stop());
-              } catch (err) {
-                console.warn(
-                  `Camera ${cameras[currentIndex].label} failed, trying next...`,
-                  err
-                );
-                currentIndex++;
-                tryCamera();
-              }
-            };
-
-            tryCamera();
-          } else {
-            console.error("No video input devices found.");
-          }
-        } catch (error) {
-          console.error("Error enumerating devices:", error);
+        if (videoInputs.length === 0) {
+          setError("No cameras found.");
+          return;
         }
+
+        // 👉 Prefer the second camera (index 1), often back camera
+        let preferredIndex = videoInputs.length > 1 ? 1 : 0;
+        const success = await tryCamera(videoInputs[preferredIndex].deviceId);
+
+        // If second fails, fallback to the first
+        if (!success && preferredIndex === 1) {
+          await tryCamera(videoInputs[0].deviceId);
+        }
+      } catch (err) {
+        console.error("Camera init error:", err);
+        setError("Camera initialization failed.");
       }
     };
 
-    getVideoDevice();
-  }, []); // Runs only once
+    initCamera();
+  }, []);
 
   const buttonStyle = {
-    padding: '0.5rem 1rem',
-    fontSize: '1rem',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    color: '#333',
-    border: 'none',
-    borderRadius: '0.5rem',
-    cursor: 'pointer',
-    boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-    fontWeight: 'bold'
+    padding: "0.5rem 1rem",
+    fontSize: "1rem",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    color: "#333",
+    border: "none",
+    borderRadius: "0.5rem",
+    cursor: "pointer",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+    fontWeight: "bold",
   };
+
+  if (error) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "rgba(0,0,0,0.8)",
+          color: "white",
+          zIndex: 100,
+          textAlign: "center",
+          padding: "1rem",
+        }}
+      >
+        <p>{error}</p>
+      </div>
+    );
+  }
 
   if (!selectedDeviceId) {
     return (
-      <div style={{
-        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-        display: 'flex', justifyContent: 'center', alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.8)', color: 'white', zIndex: 100,
-        textAlign: 'center', padding: '1rem'
-      }}>
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "rgba(0,0,0,0.8)",
+          color: "white",
+          zIndex: 100,
+          textAlign: "center",
+          padding: "1rem",
+        }}
+      >
         <p>Initializing Camera...<br />Please grant permission.</p>
       </div>
     );
   }
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 100 }}>
+    <div
+      style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 100 }}
+    >
       <a-scene
         key={selectedDeviceId}
-        arjs={`sourceType: webcam; deviceId: ${selectedDeviceId}; facingMode: environment; debugUIEnabled: false;`}
+        arjs={`sourceType: webcam; deviceId: ${selectedDeviceId}; debugUIEnabled: false;`}
         renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; physicallyCorrectLights: true;"
         vr-mode-ui="enabled: false"
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: "100%", height: "100%" }}
       >
         <a-entity light="type: ambient; intensity: 0.7"></a-entity>
-        <a-entity light="type: directional; intensity: 1; castShadow: true" position="1 2 2"></a-entity>
-        <a-entity light="type: directional; intensity: 0.8" position="-2 2 1"></a-entity>
+        <a-entity
+          light="type: directional; intensity: 1; castShadow: true"
+          position="1 2 2"
+        ></a-entity>
+        <a-entity
+          light="type: directional; intensity: 0.8"
+          position="-2 2 1"
+        ></a-entity>
 
         <a-marker preset="hiro">
           <a-entity
@@ -113,29 +149,57 @@ const ARView = ({ item, onClose }) => {
         <a-entity camera></a-entity>
       </a-scene>
 
-      <div style={{
-        position: 'absolute',
-        top: '0',
-        left: '0',
-        width: '100%',
-        padding: '1rem',
-        boxSizing: 'border-box',
-        zIndex: 10,
-        color: 'white',
-        textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-        background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <div
+        style={{
+          position: "absolute",
+          top: "0",
+          left: "0",
+          width: "100%",
+          padding: "1rem",
+          boxSizing: "border-box",
+          zIndex: 10,
+          color: "white",
+          textShadow: "0 1px 3px rgba(0,0,0,0.5)",
+          background: "linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)",
+        }}
+      >
+        <div
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+        >
+          <div style={{ display: "flex", gap: "0.5rem" }}>
             <button onClick={onClose} style={buttonStyle}>
               &larr; Back
             </button>
           </div>
-          <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Viewing: {item.name}</h2>
+          <h2 style={{ margin: 0, fontSize: "1.25rem" }}>Viewing: {item.name}</h2>
         </div>
-        <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: 'rgba(0, 0, 0, 0.6)', borderRadius: '0.5rem', textAlign: 'center' }}>
-          <p style={{ margin: '0 0 0.5rem 0' }}>Point your camera at the Hiro marker to see the 3D model.</p>
-          <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/HIRO.jpg" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', padding: '0.5rem 1rem', fontSize: '0.875rem', backgroundColor: '#3B82F6', borderRadius: '0.375rem', textDecoration: 'none', color: 'white', fontWeight: '500' }}>
+        <div
+          style={{
+            marginTop: "1.5rem",
+            padding: "1rem",
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            borderRadius: "0.5rem",
+            textAlign: "center",
+          }}
+        >
+          <p style={{ margin: "0 0 0.5rem 0" }}>
+            Point your camera at the Hiro marker to see the 3D model.
+          </p>
+          <a
+            href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/HIRO.jpg"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-block",
+              padding: "0.5rem 1rem",
+              fontSize: "0.875rem",
+              backgroundColor: "#3B82F6",
+              borderRadius: "0.375rem",
+              textDecoration: "none",
+              color: "white",
+              fontWeight: "500",
+            }}
+          >
             Show Hiro Marker
           </a>
         </div>
@@ -145,47 +209,86 @@ const ARView = ({ item, onClose }) => {
 };
 
 const Tag = ({ label }) => (
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    color: '#6B7280',
-    fontSize: '0.875rem',
-    marginRight: '1rem'
-  }}>
-    <span style={{ marginRight: '0.25rem' }}>✓</span>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      color: "#6B7280",
+      fontSize: "0.875rem",
+      marginRight: "1rem",
+    }}
+  >
+    <span style={{ marginRight: "0.25rem" }}>✓</span>
     {label}
   </div>
 );
 
 const MenuItem = ({ item, onViewInAR }) => (
-  <div style={{
-    backgroundColor: 'white',
-    borderRadius: '0.5rem',
-    display: 'flex',
-    padding: '1rem',
-    gap: '1rem',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-    border: '1px solid #E5E7EB'
-  }}>
+  <div
+    style={{
+      backgroundColor: "white",
+      borderRadius: "0.5rem",
+      display: "flex",
+      padding: "1rem",
+      gap: "1rem",
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+      border: "1px solid #E5E7EB",
+    }}
+  >
     <img
       src={item.image}
       alt={item.name}
       style={{
-        width: '120px',
-        height: '120px',
-        objectFit: 'cover',
-        borderRadius: '0.375rem',
-        flexShrink: 0
+        width: "120px",
+        height: "120px",
+        objectFit: "cover",
+        borderRadius: "0.375rem",
+        flexShrink: 0,
       }}
-      onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/120x120/EEE/333?text=Error'; }}
+      onError={(e) => {
+        e.target.onerror = null;
+        e.target.src = "https://placehold.co/120x120/EEE/333?text=Error";
+      }}
     />
-    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <h3 style={{ margin: 0, fontSize: '1.125rem', color: '#1a1a1a', fontWeight: '600' }}>{item.name}</h3>
-        <p style={{ margin: 0, fontSize: '1.125rem', fontWeight: 'bold', color: '#1a1a1a', whiteSpace: 'nowrap', paddingLeft: '1rem' }}>{item.price}</p>
+    <div style={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
+      <div
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}
+      >
+        <h3
+          style={{
+            margin: 0,
+            fontSize: "1.125rem",
+            color: "#1a1a1a",
+            fontWeight: "600",
+          }}
+        >
+          {item.name}
+        </h3>
+        <p
+          style={{
+            margin: 0,
+            fontSize: "1.125rem",
+            fontWeight: "bold",
+            color: "#1a1a1a",
+            whiteSpace: "nowrap",
+            paddingLeft: "1rem",
+          }}
+        >
+          {item.price}
+        </p>
       </div>
-      <p style={{ color: '#555', margin: '0.25rem 0 0.75rem 0', flexGrow: 1, fontSize: '0.9rem', lineHeight: '1.5' }}>{item.description}</p>
-      <div style={{ display: 'flex', marginBottom: '0.75rem' }}>
+      <p
+        style={{
+          color: "#555",
+          margin: "0.25rem 0 0.75rem 0",
+          flexGrow: 1,
+          fontSize: "0.9rem",
+          lineHeight: "1.5",
+        }}
+      >
+        {item.description}
+      </p>
+      <div style={{ display: "flex", marginBottom: "0.75rem" }}>
         {item.isVegan && <Tag label="Vegan" />}
         {item.isSpicy && <Tag label="Spicy" />}
         {item.isGlutenFree && <Tag label="Gluten-Free" />}
@@ -193,19 +296,19 @@ const MenuItem = ({ item, onViewInAR }) => (
       <button
         onClick={() => onViewInAR(item)}
         style={{
-          padding: '0.5rem 1rem',
-          fontSize: '0.875rem',
-          fontWeight: '600',
-          color: '#4F46E5',
-          backgroundColor: '#EEF2FF',
-          border: '1px solid #C7D2FE',
-          borderRadius: '0.375rem',
-          cursor: 'pointer',
-          transition: 'background-color 0.2s, color 0.2s',
-          alignSelf: 'flex-start'
+          padding: "0.5rem 1rem",
+          fontSize: "0.875rem",
+          fontWeight: "600",
+          color: "#4F46E5",
+          backgroundColor: "#EEF2FF",
+          border: "1px solid #C7D2FE",
+          borderRadius: "0.375rem",
+          cursor: "pointer",
+          transition: "background-color 0.2s, color 0.2s",
+          alignSelf: "flex-start",
         }}
-        onMouseOver={e => e.currentTarget.style.backgroundColor = '#C7D2FE'}
-        onMouseOut={e => e.currentTarget.style.backgroundColor = '#EEF2FF'}
+        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#C7D2FE")}
+        onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#EEF2FF")}
       >
         View in AR
       </button>
@@ -222,7 +325,8 @@ function App() {
       name: "Classic Burger",
       description: "A juicy beef patty with fresh lettuce, tomato, onion, and our secret sauce.",
       price: "$12.99 USD",
-      image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1998&auto=format&fit=crop",
+      image:
+        "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1998&auto=format&fit=crop",
       category: "Main Dishes",
       isSpicy: true,
       model: "/models/burger.glb",
@@ -235,11 +339,13 @@ function App() {
       name: "French Fries",
       description: "Crispy, golden-brown fries salted to perfection.",
       price: "$4.99 USD",
-      image: "https://images.unsplash.com/photo-1576107232684-c7be35d0859a?q=80&w=1887&auto=format&fit=crop",
+      image:
+        "https://images.unsplash.com/photo-1576107232684-c7be35d0859a?q=80&w=1887&auto=format&fit=crop",
       category: "Sides",
       isVegan: true,
       isGlutenFree: true,
-      model: "https://cdn.glitch.global/e9a72511-b1e7-44a3-81f3-524621fb2b87/fries.glb?v=1689785903893",
+      model:
+        "https://cdn.glitch.global/e9a72511-b1e7-44a3-81f3-524621fb2b87/fries.glb?v=1689785903893",
       scale: "0.4 0.4 0.4",
       position: "0 0 0",
       rotation: "0 0 0",
@@ -249,9 +355,11 @@ function App() {
       name: "Pancakes with Berries",
       description: "Fluffy buttermilk pancakes topped with fresh berries.",
       price: "$10.99 USD",
-      image: "https://images.unsplash.com/photo-1528207776546-365bb710e93?q=80&w=2070&auto=format&fit=crop",
+      image:
+        "https://images.unsplash.com/photo-1528207776546-365bb710e93?q=80&w=2070&auto=format&fit=crop",
       category: "Breakfast",
-      model: "https://cdn.glitch.global/e9a72511-b1e7-44a3-81f3-524621fb2b87/pancakes.glb?v=1689785909282",
+      model:
+        "https://cdn.glitch.global/e9a72511-b1e7-44a3-81f3-524621fb2b87/pancakes.glb?v=1689785909282",
       scale: "0.003 0.003 0.003",
       position: "0 0 0",
       rotation: "0 0 0",
@@ -261,10 +369,12 @@ function App() {
       name: "Regular Soda",
       description: "Choose from a selection of classic soft drinks.",
       price: "$2.99 USD",
-      image: "https://images.unsplash.com/photo-1554866585-cd94860890b7?q=80&w=1964&auto=format&fit=crop",
+      image:
+        "https://images.unsplash.com/photo-1554866585-cd94860890b7?q=80&w=1964&auto=format&fit=crop",
       category: "Drinks",
       isVegan: true,
-      model: "https://cdn.glitch.global/e9a72511-b1e7-44a3-81f3-524621fb2b87/soda_can.glb?v=1689785913233",
+      model:
+        "https://cdn.glitch.global/e9a72511-b1e7-44a3-81f3-524621fb2b87/soda_can.glb?v=1689785913233",
       scale: "0.2 0.2 0.2",
       position: "0 0.1 0",
       rotation: "0 0 0",
@@ -274,25 +384,30 @@ function App() {
       name: "Chocolate Cake",
       description: "A decadent slice of rich chocolate cake.",
       price: "$6.00 USD",
-      image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?q=80&w=1987&auto=format&fit=crop",
+      image:
+        "https://images.unsplash.com/photo-1578985545062-69928b1d9587?q=80&w=1987&auto=format&fit=crop",
       category: "Desserts",
-      model: "https://cdn.glitch.global/e9a72511-b1e7-44a3-81f3-524621fb2b87/cake_slice.glb?v=1689785895782",
+      model:
+        "https://cdn.glitch.global/e9a72511-b1e7-44a3-81f3-524621fb2b87/cake_slice.glb?v=1689785895782",
       scale: "0.3 0.3 0.3",
       position: "0 0.1 0",
       rotation: "0 0 0",
-    }
+    },
   ];
 
-  const categories = ["All", ...new Set(menuData.map(item => item.category))];
+  const categories = ["All", ...new Set(menuData.map((item) => item.category))];
   const [activeCategory, setActiveCategory] = useState(categories[0]);
 
-  const filteredItems = activeCategory === "All"
-    ? menuData
-    : menuData.filter(item => item.category === activeCategory);
+  const filteredItems =
+    activeCategory === "All"
+      ? menuData
+      : menuData.filter((item) => item.category === activeCategory);
 
   useEffect(() => {
-    document.body.style.overflow = arItem ? 'hidden' : 'auto';
-    return () => { document.body.style.overflow = 'auto'; };
+    document.body.style.overflow = arItem ? "hidden" : "auto";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
   }, [arItem]);
 
   if (arItem) {
@@ -300,39 +415,60 @@ function App() {
   }
 
   return (
-    <div style={{
-      fontFamily: `'Inter', sans-serif`,
-      backgroundColor: '#F9FAFB',
-      minHeight: '100vh',
-    }}>
-      <main style={{
-        maxWidth: '800px',
-        margin: '0 auto',
-        padding: '2rem 1rem',
-      }}>
-        <header style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <h1 style={{ fontSize: '2.25rem', fontWeight: 'bold', color: '#111827' }}>Browse our menu</h1>
-          <p style={{ fontSize: '1.125rem', color: '#4B5563', marginTop: '0.5rem' }}>
+    <div
+      style={{
+        fontFamily: `'Inter', sans-serif`,
+        backgroundColor: "#F9FAFB",
+        minHeight: "100vh",
+      }}
+    >
+      <main
+        style={{
+          maxWidth: "800px",
+          margin: "0 auto",
+          padding: "2rem 1rem",
+        }}
+      >
+        <header style={{ textAlign: "center", marginBottom: "2.5rem" }}>
+          <h1 style={{ fontSize: "2.25rem", fontWeight: "bold", color: "#111827" }}>
+            Browse our menu
+          </h1>
+          <p
+            style={{
+              fontSize: "1.125rem",
+              color: "#4B5563",
+              marginTop: "0.5rem",
+            }}
+          >
             Explore delicious food and view them in AR!
           </p>
         </header>
 
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
-          {categories.map(category => (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "0.75rem",
+            marginBottom: "2.5rem",
+            flexWrap: "wrap",
+          }}
+        >
+          {categories.map((category) => (
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
               style={{
-                padding: '0.5rem 1.25rem',
-                fontSize: '1rem',
-                fontWeight: '600',
-                border: '1px solid transparent',
-                borderRadius: '0.375rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                backgroundColor: activeCategory === category ? '#FF7A59' : '#FFFFFF',
-                color: activeCategory === category ? '#FFFFFF' : '#374151',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                padding: "0.5rem 1.25rem",
+                fontSize: "1rem",
+                fontWeight: "600",
+                border: "1px solid transparent",
+                borderRadius: "0.375rem",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                backgroundColor:
+                  activeCategory === category ? "#FF7A59" : "#FFFFFF",
+                color: activeCategory === category ? "#FFFFFF" : "#374151",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
               }}
             >
               {category}
@@ -340,8 +476,8 @@ function App() {
           ))}
         </div>
 
-        <div style={{ display: 'grid', gap: '1.5rem' }}>
-          {filteredItems.map(item => (
+        <div style={{ display: "grid", gap: "1.5rem" }}>
+          {filteredItems.map((item) => (
             <MenuItem key={item.id} item={item} onViewInAR={setArItem} />
           ))}
         </div>

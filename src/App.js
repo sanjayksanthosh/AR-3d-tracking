@@ -4,11 +4,9 @@ import React, { useState, useEffect } from 'react';
 
 // ARView Component: Handles the camera and 3D model display
 const ARView = ({ item, onClose }) => {
-  // --- NEW: State for camera devices ---
   const [videoDevices, setVideoDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState(null);
 
-  // --- NEW: useEffect to get cameras and set default ---
   useEffect(() => {
     const getVideoDevices = async () => {
       try {
@@ -18,31 +16,36 @@ const ARView = ({ item, onClose }) => {
         const cameras = devices.filter(device => device.kind === 'videoinput');
         setVideoDevices(cameras);
 
-        // --- Logic to default to the second camera ---
-        if (cameras.length > 1) {
-          // If there are multiple cameras, pick the second one.
-          setSelectedDeviceId(cameras[1].deviceId);
-        } else if (cameras.length > 0) {
-          // Otherwise, fall back to the first one.
-          setSelectedDeviceId(cameras[0].deviceId);
+        if (cameras.length > 0) {
+          // Prefer a back/environment camera
+          const backCam = cameras.find(cam =>
+            /back|environment/i.test(cam.label)
+          );
+          if (backCam) {
+            setSelectedDeviceId(backCam.deviceId);
+          } else if (cameras.length > 1) {
+            // Fallback: pick the second camera
+            setSelectedDeviceId(cameras[1].deviceId);
+          } else {
+            // Last resort: use the first camera
+            setSelectedDeviceId(cameras[0].deviceId);
+          }
         }
       } catch (error) {
         console.error("Error accessing or enumerating video devices:", error);
       }
     };
     getVideoDevices();
-  }, []); // Empty dependency array ensures this runs only once
+  }, []);
 
-  // --- NEW: Updated switch logic to cycle through all cameras ---
   const handleCameraSwitch = () => {
     if (videoDevices.length > 1) {
       const currentIndex = videoDevices.findIndex(device => device.deviceId === selectedDeviceId);
-      const nextIndex = (currentIndex + 1) % videoDevices.length; // Wrap around the list
+      const nextIndex = (currentIndex + 1) % videoDevices.length;
       setSelectedDeviceId(videoDevices[nextIndex].deviceId);
     }
   };
 
-  // Shared button style for UI consistency
   const buttonStyle = {
     padding: '0.5rem 1rem',
     fontSize: '1rem',
@@ -55,7 +58,6 @@ const ARView = ({ item, onClose }) => {
     fontWeight: 'bold'
   };
 
-  // Display a loading message until a camera is selected
   if (!selectedDeviceId) {
     return (
       <div style={{
@@ -71,23 +73,17 @@ const ARView = ({ item, onClose }) => {
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 100 }}>
-      {/* --- CRITICAL UPDATE to <a-scene> ---
-        1. `key` is now based on the specific camera ID.
-        2. `arjs` now uses `deviceId` instead of the generic `facingMode`.
-      */}
       <a-scene
         key={selectedDeviceId}
-        arjs={`sourceType: webcam; deviceId: ${selectedDeviceId}; debugUIEnabled: false;`}
+        arjs={`sourceType: webcam; deviceId: ${selectedDeviceId}; facingMode: environment; debugUIEnabled: false;`}
         renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; physicallyCorrectLights: true;"
         vr-mode-ui="enabled: false"
         style={{ width: '100%', height: '100%' }}
       >
-        {/* Lights */}
         <a-entity light="type: ambient; intensity: 0.7"></a-entity>
         <a-entity light="type: directional; intensity: 1; castShadow: true" position="1 2 2"></a-entity>
         <a-entity light="type: directional; intensity: 0.8" position="-2 2 1"></a-entity>
 
-        {/* Marker and Model */}
         <a-marker preset="hiro">
           <a-entity
             gltf-model={`url(${item.model})`}
@@ -99,7 +95,6 @@ const ARView = ({ item, onClose }) => {
         <a-entity camera></a-entity>
       </a-scene>
 
-      {/* UI Overlay */}
       <div style={{
         position: 'absolute',
         top: '0',
@@ -117,7 +112,6 @@ const ARView = ({ item, onClose }) => {
             <button onClick={onClose} style={buttonStyle}>
               &larr; Back
             </button>
-            {/* The button to switch cameras, now with the new logic */}
             {videoDevices.length > 1 && (
               <button onClick={handleCameraSwitch} style={buttonStyle}>
                 🔄 Switch
@@ -137,8 +131,6 @@ const ARView = ({ item, onClose }) => {
   );
 };
 
-
-// --- Tag Component (Unchanged) ---
 const Tag = ({ label }) => (
   <div style={{
     display: 'flex',
@@ -152,7 +144,6 @@ const Tag = ({ label }) => (
   </div>
 );
 
-// --- MenuItem Component (Unchanged) ---
 const MenuItem = ({ item, onViewInAR }) => (
   <div style={{
     backgroundColor: 'white',
@@ -209,7 +200,6 @@ const MenuItem = ({ item, onViewInAR }) => (
   </div>
 );
 
-// --- Main App Component (Unchanged) ---
 function App() {
   const [arItem, setArItem] = useState(null);
 
@@ -222,9 +212,9 @@ function App() {
       image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1998&auto=format&fit=crop",
       category: "Main Dishes",
       isSpicy: true,
-      model: "/models/pizza.glb",
-      scale: "1 1 1",
-      position: "0 0.1 0",
+      model: "/models/burger.glb",
+      scale: "18 18 18",
+      position: "0 0 0",
       rotation: "0 0 0",
     },
     {
@@ -314,7 +304,6 @@ function App() {
           </p>
         </header>
 
-        {/* Category Filter */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
           {categories.map(category => (
             <button
@@ -338,7 +327,6 @@ function App() {
           ))}
         </div>
 
-        {/* Menu Items */}
         <div style={{ display: 'grid', gap: '1.5rem' }}>
           {filteredItems.map(item => (
             <MenuItem key={item.id} item={item} onViewInAR={setArItem} />

@@ -7,40 +7,25 @@ const ARView = ({ item, onClose }) => {
   const [videoDevices, setVideoDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState(null);
 
-  // --- MODIFIED useEffect HOOK ---
+  // --- MODIFIED useEffect to default to the second camera ---
   useEffect(() => {
     const getVideoDevices = async () => {
       try {
-        // 1. FIRST, request camera permissions to ensure labels are available.
         await navigator.mediaDevices.getUserMedia({ video: true });
-
-        // 2. NOW, enumerate devices to get the full list with labels.
         const devices = await navigator.mediaDevices.enumerateDevices();
         const cameras = devices.filter(device => device.kind === 'videoinput');
         setVideoDevices(cameras);
 
-        // 3. IMPROVED default selection logic.
-        // Attempt 1: Find a back-facing camera that is NOT wide-angle.
-        const idealCamera = cameras.find(device =>
-          device.label.toLowerCase().includes('back') &&
-          !device.label.toLowerCase().includes('wide')
-        );
-
-        if (idealCamera) {
-          setSelectedDeviceId(idealCamera.deviceId);
-        } else {
-          // Attempt 2 (Fallback): Find any back-facing camera.
-          const fallbackCamera = cameras.find(d => d.label.toLowerCase().includes('back'));
-          if (fallbackCamera) {
-            setSelectedDeviceId(fallbackCamera.deviceId);
-          } else if (cameras.length > 0) {
-            // Attempt 3 (Last Resort): Just use the first camera in the list.
-            setSelectedDeviceId(cameras[0].deviceId);
-          }
+        // --- NEW Logic: Default to the second camera if it exists ---
+        if (cameras.length > 1) {
+          // Select the second camera from the list.
+          setSelectedDeviceId(cameras[1].deviceId);
+        } else if (cameras.length > 0) {
+          // Fallback to the first camera if there's only one.
+          setSelectedDeviceId(cameras[0].deviceId);
         }
       } catch (error) {
         console.error("Error accessing or enumerating video devices:", error);
-        // Add a message for the user if permission is denied.
       }
     };
     getVideoDevices();
@@ -66,7 +51,6 @@ const ARView = ({ item, onClose }) => {
     }
   };
   
-  // A more helpful message while waiting for permissions.
   if (!selectedDeviceId) {
     return (
         <div style={{
@@ -219,7 +203,7 @@ function App() {
       image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1998&auto=format&fit=crop",
       category: "Main Dishes",
       isSpicy: true,
-      model: "/models/ribs_from_joia.glb",
+      model: "/models/cheese_pastry.glb",
       scale: "0.05 0.05 0.05",
       position: "0 0.1 0",
       rotation: "0 0 0",

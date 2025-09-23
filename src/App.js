@@ -4,15 +4,41 @@ import React, { useState, useEffect } from 'react';
 
 // ARView Component: Handles the camera and 3D model display
 const ARView = ({ item, onClose }) => {
+  // State to manage camera facing mode: 'environment' (back) or 'user' (front)
+  const [facingMode, setFacingMode] = useState('environment');
+
   useEffect(() => {
     console.log("ARView mounted for:", item.name);
   }, [item]);
 
+  // Toggles the camera between front and back
+  const handleCameraSwitch = () => {
+    setFacingMode(prevMode => (prevMode === 'environment' ? 'user' : 'environment'));
+  };
+
+  // Shared button style for UI consistency
+  const buttonStyle = {
+    padding: '0.5rem 1rem',
+    fontSize: '1rem',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    color: '#333',
+    border: 'none',
+    borderRadius: '0.5rem',
+    cursor: 'pointer',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+    fontWeight: 'bold'
+  };
+
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 100 }}>
-      {/* A-Frame Scene for AR - Corrected */}
+      {/* A-Frame Scene for AR - Updated with two key changes:
+        1. `key={facingMode}`: This forces React to re-mount the component when the camera switches,
+           which is necessary for AR.js to re-initialize the camera source.
+        2. `arjs={`...`}`: The facingMode is now dynamic based on the component's state.
+      */}
       <a-scene
-        arjs="sourceType: webcam; facingMode: environment; debugUIEnabled: false;"
+        key={facingMode}
+        arjs={`sourceType: webcam; facingMode: ${facingMode}; debugUIEnabled: false;`}
         renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; physicallyCorrectLights: true;"
         vr-mode-ui="enabled: false"
         style={{ width: '100%', height: '100%' }}
@@ -48,12 +74,15 @@ const ARView = ({ item, onClose }) => {
         background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button
-            onClick={onClose}
-            style={{ padding: '0.5rem 1rem', fontSize: '1rem', backgroundColor: 'rgba(255, 255, 255, 0.9)', color: '#333', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.2)', fontWeight: 'bold' }}
-          >
-            &larr; Back to Menu
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button onClick={onClose} style={buttonStyle}>
+              &larr; Back
+            </button>
+            {/* The new button to switch cameras */}
+            <button onClick={handleCameraSwitch} style={buttonStyle}>
+              🔄 Switch
+            </button>
+          </div>
           <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Viewing: {item.name}</h2>
         </div>
         <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: 'rgba(0, 0, 0, 0.6)', borderRadius: '0.5rem', textAlign: 'center' }}>
@@ -66,6 +95,7 @@ const ARView = ({ item, onClose }) => {
     </div>
   );
 };
+
 
 // --- Tag Component ---
 const Tag = ({ label }) => (

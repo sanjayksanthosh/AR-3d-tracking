@@ -219,7 +219,7 @@ function App() {
       image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1998&auto=format&fit=crop",
       category: "Main Dishes",
       isSpicy: true,
-      model: "https://cdn.glitch.global/e9a72511-b1e7-44a3-81f3-524621fb2b87/burger.glb?v=1689785899222",
+      model: "/models/ribs_from_joia.glb",
       scale: "0.05 0.05 0.05",
       position: "0 0.1 0",
       rotation: "0 0 0",

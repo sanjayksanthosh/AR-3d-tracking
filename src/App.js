@@ -4,58 +4,47 @@ import React, { useState, useEffect } from 'react';
 
 // ARView Component: Handles the camera and 3D model display
 const ARView = ({ item, onClose }) => {
-  // --- NEW STATE ---
-  // State to hold all available video devices (cameras)
   const [videoDevices, setVideoDevices] = useState([]);
-  // State to hold the ID of the currently selected camera
   const [selectedDeviceId, setSelectedDeviceId] = useState(null);
 
-  // --- NEW useEffect to get cameras ---
-  // This effect runs once to get a list of all cameras on the device.
+  // --- MODIFIED useEffect HOOK ---
   useEffect(() => {
     const getVideoDevices = async () => {
       try {
-        // First, request camera permissions. enumerateDevices won't return labels without it.
+        // 1. FIRST, request camera permissions to ensure labels are available.
         await navigator.mediaDevices.getUserMedia({ video: true });
+
+        // 2. NOW, enumerate devices to get the full list with labels.
         const devices = await navigator.mediaDevices.enumerateDevices();
         const cameras = devices.filter(device => device.kind === 'videoinput');
         setVideoDevices(cameras);
 
-        // --- Smart Default Selection ---
-        // Try to find a back-facing camera that is NOT wide-angle for a better default.
-        // If not found, fall back to the first available back camera, or the first camera overall.
-        const rearCamera = cameras.find(device => 
-            device.label.toLowerCase().includes('back') && 
-            !device.label.toLowerCase().includes('wide')
+        // 3. IMPROVED default selection logic.
+        // Attempt 1: Find a back-facing camera that is NOT wide-angle.
+        const idealCamera = cameras.find(device =>
+          device.label.toLowerCase().includes('back') &&
+          !device.label.toLowerCase().includes('wide')
         );
 
-        if (rearCamera) {
-          setSelectedDeviceId(rearCamera.deviceId);
+        if (idealCamera) {
+          setSelectedDeviceId(idealCamera.deviceId);
         } else {
-            const fallbackRear = cameras.find(d => d.label.toLowerCase().includes('back'));
-            if(fallbackRear) {
-                setSelectedDeviceId(fallbackRear.deviceId);
-            } else if (cameras.length > 0) {
-                setSelectedDeviceId(cameras[0].deviceId);
-            }
+          // Attempt 2 (Fallback): Find any back-facing camera.
+          const fallbackCamera = cameras.find(d => d.label.toLowerCase().includes('back'));
+          if (fallbackCamera) {
+            setSelectedDeviceId(fallbackCamera.deviceId);
+          } else if (cameras.length > 0) {
+            // Attempt 3 (Last Resort): Just use the first camera in the list.
+            setSelectedDeviceId(cameras[0].deviceId);
+          }
         }
       } catch (error) {
-        console.error("Error enumerating video devices:", error);
-        // Handle cases where camera access is denied
+        console.error("Error accessing or enumerating video devices:", error);
+        // Add a message for the user if permission is denied.
       }
     };
     getVideoDevices();
   }, []); // Empty dependency array ensures this runs only once
-
-  // --- UPDATED camera switch handler ---
-  // This now cycles through the list of available cameras.
-  const handleCameraSwitch = () => {
-    if (videoDevices.length > 1) {
-      const currentIndex = videoDevices.findIndex(device => device.deviceId === selectedDeviceId);
-      const nextIndex = (currentIndex + 1) % videoDevices.length;
-      setSelectedDeviceId(videoDevices[nextIndex].deviceId);
-    }
-  };
 
   const buttonStyle = {
     padding: '0.5rem 1rem',
@@ -68,8 +57,16 @@ const ARView = ({ item, onClose }) => {
     boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
     fontWeight: 'bold'
   };
+
+  const handleCameraSwitch = () => {
+    if (videoDevices.length > 1) {
+      const currentIndex = videoDevices.findIndex(device => device.deviceId === selectedDeviceId);
+      const nextIndex = (currentIndex + 1) % videoDevices.length;
+      setSelectedDeviceId(videoDevices[nextIndex].deviceId);
+    }
+  };
   
-  // Don't render anything until we have a selected camera to avoid errors.
+  // A more helpful message while waiting for permissions.
   if (!selectedDeviceId) {
     return (
         <div style={{
@@ -78,17 +75,13 @@ const ARView = ({ item, onClose }) => {
             backgroundColor: 'rgba(0,0,0,0.8)', color: 'white', zIndex: 100,
             textAlign: 'center', padding: '1rem'
         }}>
-            <p>Accessing camera...<br/>Please grant permission.</p>
+            <p>Accessing camera...<br/>Please grant permission to continue.</p>
         </div>
     );
   }
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 100 }}>
-      {/* --- CRITICAL a-scene UPDATE ---
-        1. `key={selectedDeviceId}`: Now re-mounts when the specific device ID changes.
-        2. `arjs={`...`}`: We now pass the specific `deviceId` to AR.js. This is the core of the fix.
-      */}
       <a-scene
         key={selectedDeviceId}
         arjs={`sourceType: webcam; deviceId: ${selectedDeviceId}; debugUIEnabled: false;`}
@@ -96,12 +89,10 @@ const ARView = ({ item, onClose }) => {
         vr-mode-ui="enabled: false"
         style={{ width: '100%', height: '100%' }}
       >
-        {/* Lights */}
         <a-entity light="type: ambient; intensity: 0.7"></a-entity>
         <a-entity light="type: directional; intensity: 1; castShadow: true" position="1 2 2"></a-entity>
         <a-entity light="type: directional; intensity: 0.8" position="-2 2 1"></a-entity>
 
-        {/* Marker and Model */}
         <a-marker preset="hiro">
           <a-entity
             gltf-model={`url(${item.model})`}
@@ -124,7 +115,6 @@ const ARView = ({ item, onClose }) => {
             <button onClick={onClose} style={buttonStyle}>
               &larr; Back
             </button>
-            {/* The button now cycles through all cameras */}
             {videoDevices.length > 1 && (
               <button onClick={handleCameraSwitch} style={buttonStyle}>
                 🔄 Switch Camera
@@ -143,6 +133,7 @@ const ARView = ({ item, onClose }) => {
     </div>
   );
 };
+
 
 // --- Tag Component ---
 const Tag = ({ label }) => (

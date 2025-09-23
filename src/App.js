@@ -2,21 +2,41 @@ import React, { useState, useEffect } from 'react';
 
 // --- Helper Components ---
 
-// ARView Component: Handles the camera and 3D model display (MODIFIED)
+// ARView Component: Handles the camera and 3D model display (FIXED to use back camera)
 const ARView = ({ item, onClose }) => {
   const [selectedDeviceId, setSelectedDeviceId] = useState(null);
 
   useEffect(() => {
     const getVideoDevice = async () => {
       try {
-        // Request permissions first to ensure camera access
+        // Ask permission first
         await navigator.mediaDevices.getUserMedia({ video: true });
         const devices = await navigator.mediaDevices.enumerateDevices();
         const cameras = devices.filter(device => device.kind === 'videoinput');
 
         if (cameras.length > 0) {
-          // Directly use the first available camera
-          setSelectedDeviceId(cameras[0].deviceId);
+          // Prefer "back" or "environment" cameras
+          const backCam = cameras.find(cam =>
+            /back|environment/i.test(cam.label)
+          );
+
+          if (backCam) {
+            setSelectedDeviceId(backCam.deviceId);
+            console.log("Using back camera:", backCam.label);
+          } else if (cameras.length > 1) {
+            // fallback: second camera (often back)
+            setSelectedDeviceId(cameras[1].deviceId);
+            console.log("Using second camera:", cameras[1].label);
+          } else {
+            // fallback: first camera
+            setSelectedDeviceId(cameras[0].deviceId);
+            console.log("Using first camera:", cameras[0].label);
+          }
+
+          // Debug: list all cameras
+          cameras.forEach((cam, idx) => {
+            console.log(`Camera ${idx}:`, cam.label || "Unnamed");
+          });
         } else {
           console.error("No video input devices found.");
         }
@@ -25,19 +45,7 @@ const ARView = ({ item, onClose }) => {
       }
     };
     getVideoDevice();
-  }, []); // Runs only once on component mount
-
-  const buttonStyle = {
-    padding: '0.5rem 1rem',
-    fontSize: '1rem',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    color: '#333',
-    border: 'none',
-    borderRadius: '0.5rem',
-    cursor: 'pointer',
-    boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-    fontWeight: 'bold'
-  };
+  }, []);
 
   if (!selectedDeviceId) {
     return (
@@ -55,9 +63,8 @@ const ARView = ({ item, onClose }) => {
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 100 }}>
       <a-scene
-        // The key is still useful to force a re-render if the deviceId is ever set again
         key={selectedDeviceId}
-        arjs={`sourceType: webcam; deviceId: ${selectedDeviceId}; debugUIEnabled: false;`}
+        arjs={`sourceType: webcam; deviceId: ${selectedDeviceId}; facingMode: environment; debugUIEnabled: false;`}
         renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; physicallyCorrectLights: true;"
         vr-mode-ui="enabled: false"
         style={{ width: '100%', height: '100%' }}
@@ -91,16 +98,50 @@ const ARView = ({ item, onClose }) => {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button onClick={onClose} style={buttonStyle}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '0.5rem 1rem',
+                fontSize: '1rem',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                color: '#333',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                fontWeight: 'bold'
+              }}
+            >
               &larr; Back
             </button>
-            {/* The Switch Camera Button has been removed */}
           </div>
           <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Viewing: {item.name}</h2>
         </div>
-        <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: 'rgba(0, 0, 0, 0.6)', borderRadius: '0.5rem', textAlign: 'center' }}>
-          <p style={{ margin: '0 0 0.5rem 0' }}>Point your camera at the Hiro marker to see the 3D model.</p>
-          <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/HIRO.jpg" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', padding: '0.5rem 1rem', fontSize: '0.875rem', backgroundColor: '#3B82F6', borderRadius: '0.375rem', textDecoration: 'none', color: 'white', fontWeight: '500' }}>
+        <div style={{
+          marginTop: '1.5rem',
+          padding: '1rem',
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          borderRadius: '0.5rem',
+          textAlign: 'center'
+        }}>
+          <p style={{ margin: '0 0 0.5rem 0' }}>
+            Point your camera at the Hiro marker to see the 3D model.
+          </p>
+          <a
+            href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/HIRO.jpg"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-block',
+              padding: '0.5rem 1rem',
+              fontSize: '0.875rem',
+              backgroundColor: '#3B82F6',
+              borderRadius: '0.375rem',
+              textDecoration: 'none',
+              color: 'white',
+              fontWeight: '500'
+            }}
+          >
             Show Hiro Marker
           </a>
         </div>
@@ -109,6 +150,7 @@ const ARView = ({ item, onClose }) => {
   );
 };
 
+// --- Tag Component ---
 const Tag = ({ label }) => (
   <div style={{
     display: 'flex',
@@ -122,6 +164,7 @@ const Tag = ({ label }) => (
   </div>
 );
 
+// --- MenuItem Component ---
 const MenuItem = ({ item, onViewInAR }) => (
   <div style={{
     backgroundColor: 'white',
@@ -178,6 +221,7 @@ const MenuItem = ({ item, onViewInAR }) => (
   </div>
 );
 
+// --- Main App ---
 function App() {
   const [arItem, setArItem] = useState(null);
 

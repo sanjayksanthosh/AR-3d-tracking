@@ -12,7 +12,7 @@ const ARView = ({ item, onClose }) => {
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 100 }}>
       {/* A-Frame Scene for AR - Corrected */}
       <a-scene
-        arjs="sourceType: webcam; debugUIEnabled: false;"
+        arjs="sourceType: webcam; facingMode: environment; debugUIEnabled: false;"
         renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; physicallyCorrectLights: true;"
         vr-mode-ui="enabled: false"
         style={{ width: '100%', height: '100%' }}
@@ -244,7 +244,7 @@ function App() {
         </header>
 
         {/* Category Filter */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginBottom: '2.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
           {categories.map(category => (
             <button
               key={category}

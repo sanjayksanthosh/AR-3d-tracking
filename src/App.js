@@ -213,7 +213,7 @@
         image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1998&auto=format&fit=crop",
         category: "Main Dishes",
         isSpicy: true,
-        model: "/models/burger.glb",
+        model: "/models/pizza.glb",
         scale: "18 18 18",
         position: "0 0 0",
         rotation: "0 0 0",
